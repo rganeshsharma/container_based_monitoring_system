@@ -8,14 +8,14 @@ On your master node, set the hostname and if you don’t have a DNS server, then
 
 # hostnamectl set-hostname master-node
 # cat <<EOF>> /etc/hosts
-10.30.122.10 master.hpe.local
-10.30.122.11 worker1.hpe.local
-10.30.122.12 worker2.hpe.local
+10.30.122.10 master.local
+10.30.122.11 worker1.local
+10.30.122.12 worker2.local
 EOF
 You can ping k8s-worker to test if your updated hostfile is fine using ping command.
-# ping master.hpe.local
-# ping worker1.hpe.local
-# ping worker2.hpe.local
+# ping master.local
+# ping worker1.local
+# ping worker2.local
 
 
 Next, disable SElinux and update your firewall rules.
@@ -140,12 +140,14 @@ On your worker-node-1 and worker-node-2, set the hostname and in case you don’
 
 # hostnamectl set-hostname master-node
 # cat <<EOF>> /etc/hosts
-10.2.1.121 k8s-master
-10.2.1.122 k8s-worker
+10.30.122.10 master.local
+10.30.122.11 worker1.local
+10.30.122.12 worker2.local
 EOF
 You can ping k8s-worker to test if your updated hostfile is fine using ping command.
-# ping k8s-master
-# ping k8s-worker
+# ping master.local
+# ping worker1.local
+# ping worker2.local
 
 Next, disable SElinux and update your firewall rules and swappoff :
 
@@ -329,7 +331,7 @@ metadata:
   name: nginxapp-ingress-service
 spec:
   rules:
-  - host: nginx.hpe.local
+  - host: nginx.local
     http:
       paths:
       - path: /
