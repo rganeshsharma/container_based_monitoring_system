@@ -1,0 +1,15 @@
+https://devopscube.com/setup-prometheus-monitoring-on-kubernetes/
+
+1) Deploy AKS Cluster with RBAC enabled and Flannel/Calico CNI
+2) Deploy Ingress with Static IP for Prometheus and Grafana access
+3) Create PVC for Prometheus deployment
+4) Deployment of ClusterRole ,ClusterRoleBinding,Configmaps, Deployments and LB Service 
+# 5) Create Prometheus Secret: 
+    kubectl create secret tls prometheus-secret -n monitoring --key global.key --cert global.crt
+    secret/prometheus-secret created
+https://devopscube.com/alert-manager-kubernetes-guide/    
+6) SMTP for Alert manager
+https://kumar-allamraju.medium.com/azure-kubernetes-monitoring-aks-with-prometheus-e2105db6dd16 
+
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+
