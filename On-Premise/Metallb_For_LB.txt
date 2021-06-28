@@ -1,0 +1,43 @@
+Metallb : https://metallb.universe.tf/  
+
+Prerequisites
+MetalLB requires the following to function:
+
+A Kubernetes cluster, running Kubernetes 1.13.0 or later, that does not already have network load-balancing functionality.
+A cluster network configuration that can coexist with MetalLB.
+Some IPv4 addresses for MetalLB to hand out.
+When using the BGP operating mode, you will need one or more routers capable of speaking BGP.
+Traffic on port 7946 (TCP & UDP) must be allowed between nodes, as required by memberlist
+
+
+Check if StrictARP is set to True:
+
+kubectl -n kube-system describe cm kube-proxy | grep strictARP
+Only if mode is set to IPVS then set strictARP to True else ignore
+
+Install Metallb:
+
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.6/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.6/manifests/metallb.yaml
+# On first install only
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)" 
+
+Configure Metallb with Layer 2 configuration:
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 10.30.122.240-10.30.122.250
+
+
+# To download the Images for Metallb:
+
+Iamge: metallb/controller:v0.9.6

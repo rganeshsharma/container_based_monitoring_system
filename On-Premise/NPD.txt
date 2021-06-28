@@ -1,0 +1,18 @@
+Node Problem Detector:
+
+https://artifacthub.io/packages/helm/deliveryhero/node-problem-detector 
+
+Add Delivery Hero public chart repo:
+
+helm repo add deliveryhero https://charts.deliveryhero.io/
+helm show values deliveryhero/node-problem-detector > node-problem-detector-values.yml
+In node-problem-detector-values.yml we must add Prometheus IP Address and Port and Enable hostNetwork to true
+
+
+
+
+Warning  FailedScheduling  2m34s  default-scheduler  0/3 nodes are available: 3 node(s) didn't have free ports for the requested pod ports.
+
+helm install node-problem-detector deliveryhero/node-problem-detector -n kube-system --values node-problem-detector-values.yml --feature-gates=PodPriority=false
+helm upgrade node-problem-detector deliveryhero/node-problem-detector -n kube-system --values node-problem-detector-values.yml 
+NonPreemptingPriority=false 

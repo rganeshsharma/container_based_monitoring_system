@@ -1,0 +1,27 @@
+Setup K8s Cluster	Completed
+Deploy Container Runtime and other prerequisites	Completed
+Deploy K8S Cluster - v1.19.3	Completed
+CNIs for K8S -Calico	Completed
+Docker Images for PODs and Deployments	Completed
+Spawn PODs and Deployments using Docker Images	Completed
+Creating K8S Services 	Completed
+Deploy Load Balancer - Metallb	Completed
+Install Helm  	Completed
+Deploy Nginx Ingress - RP	Completed
+Metallb and Ingress Configuration for exposing App to outside world	Completed
+Access App from outside world	Completed
+Integrate Monitoring tool for K8S Cluster	In-Progress
+Deploy an Ingress resource for Prometheus, Grafana, AM access	Completed
+Add Stable Helm Repo for Kube-Prometheus-Stack	Completed
+Configure Ingress for accesing Kube-Prometheus-Stack	Completed
+Prerequisites for deploying Kube-Prometheus-Stack	Completed
+Deploy the Kube-Prometheus-Stack	Completed
+Access the Kube-Prometheus-Stack	Completed
+Configure the Kube-Prometheus-Stack	Completed
+Add Incoming Webhooks to Slack	Blocked
+Integrate Slack and Prometheus Alert Manager	Blocked
+Node-Problem-Detector (NPD)	In-Progress
+Deploy NPD using Helm custom values	Completed
+Problem Daemon Types for every Node in Cluster - Default all Problem Daemon Types	Completed
+Integrating slack with NPD	Blocked
+Integrate NPD with Prometheus	In-Progress

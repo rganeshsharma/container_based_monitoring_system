@@ -1,0 +1,29 @@
+Create an Ingress for exposing Prometheus , Grafana and AlertManager:
+
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm search repo ingress-nginx
+helm show values ingress-nginx/ingress-nginx > nginx.yml
+helm list -n monitoring
+
+helm install monitoring-ingress ingress-nginx/ingress-nginx -n ingress --values nginx.yml
+nginx.yml
+---
+hostNetwork , Port must be set to true 
+Deployment has been changed with DaemonSet
+---
+
+
+Added new Helm repo for Prometheus:
+https://github.com/prometheus-community/helm-charts/ 
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm search repo prometheus-community
+
+The Prometheus-Operator has been renamed to Kube-prometheus-stack 
+We use this for our Prometheus Operator Deployment:
+
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+
+Install the Prometheus, Grafana and AlertManager Deployments using Helm :
+helm install container-monitoring prometheus-community/kube-prometheus-stack -n monitoring

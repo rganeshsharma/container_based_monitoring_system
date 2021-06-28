@@ -1,0 +1,348 @@
+https://www.tecmint.com/install-kubernetes-cluster-on-centos-7/
+https://computingforgeeks.com/install-kubernetes-cluster-on-centos-with-kubeadm/ 
+
+
+Installation of Kubernetes Cluster on CentOS 7.9:
+Step 1: Prepare Hostname, Firewall and SELinux
+On your master node, set the hostname and if you don’t have a DNS server, then also update your /etc/hosts file.
+
+# hostnamectl set-hostname master-node
+# cat <<EOF>> /etc/hosts
+10.30.122.10 master.hpe.local
+10.30.122.11 worker1.hpe.local
+10.30.122.12 worker2.hpe.local
+EOF
+You can ping k8s-worker to test if your updated hostfile is fine using ping command.
+# ping master.hpe.local
+# ping worker1.hpe.local
+# ping worker2.hpe.local
+
+
+Next, disable SElinux and update your firewall rules.
+# setenforce 0
+# sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+# reboot
+Set the following firewall rules on ports. Make sure that each firewall-cmd command, returns a success.
+
+# firewall-cmd --permanent --add-port=6443/tcp
+# firewall-cmd --permanent --add-port=2379-2380/tcp
+# firewall-cmd --permanent --add-port=10250/tcp
+# firewall-cmd --permanent --add-port=10251/tcp
+# firewall-cmd --permanent --add-port=10252/tcp
+# firewall-cmd --permanent --add-port=10255/tcp
+# firewall-cmd –reload
+# modprobe br_netfilter
+# echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+
+# swapoff -a
+vi /etc/fstab
+comment out the line 
+
+Step 2: Setup the Kubernetes Repo
+You will need to add Kubernetes repositories manually as they do not come installed by default on CentOS 7.
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+
+Step 3: Install Kubeadm and Docker
+With the package repo now ready, you can go ahead and install kubeadm and docker packages.
+
+# yum install kubelet-1.19.3 kubectl-1.19.3 kubeadm-1.19.3 -y
+When the installation completes successfully, enable and start both services.
+
+# systemctl start kubelet
+# systemctl enable docker
+# systemctl start docker
+vim /etc/sysconfig/docker
+HTTP_PROXY="http://10.154.248.91:8080"
+HTTPS_PROXY="https://10.154.248.91:8080"
+NO_PROXY=https://10.30.122.10",https://10.30.122.11",https://10.30.122.12,127.0.0.1"
+
+https://docs.docker.com/config/daemon/systemd/#httphttcd ps-proxy 
+sudo mkdir -p /etc/systemd/system/docker.service.d
+
+[Service]
+Environment="HTTP_PROXY=http://10.154.248.91:8080"
+Environment="HTTPS_PROXY=http://10.154.248.91:8080"
+Environment="NO_PROXY=10.30.122.10,10.30.122.11,10.30.122.12,10.96.0.0/16,127.0.0.1"
+
+vim /etc/profile
+export http_proxy=http://10.154.248.91:8080
+export https_proxy=http://10.154.248.91:8080
+export no_proxy=10.30.122.10,10.30.122.11,10.30.122.12,10.96.0.0/16,127.0.0.1
+env | grep proxy
+Step 4: Initialize Kubernetes Master and Setup Default User
+Now we are ready to initialize kubernetes master, but before that you need to disable swap in order to run “kubeadm init“ command.
+
+
+Initializing Kubernetes master is a fully automated process that is managed by the “kubeadm init“ command which you will run.
+
+# kubeadm init --kubernetes-version=1.19.3
+Initialize Kubernetes Master
+Initialize Kubernetes Master
+You may want to copy the last line and save it somewhere because you will need to run it on the worker nodes.
+
+kubeadm join 10.30.122.10:6443 --token ebww0j.b0tghe78p0dn1kjf \
+    --discovery-token-ca-cert-hash sha256:224bedbcafbfb6f813ef86e6d833df2ff0e1bb71db547f078ae4439249ee1ef2
+
+
+
+To use root, run:
+# mkdir -p $HOME/.kube
+# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# chown $(id -u):$(id -g) $HOME/.kube/config
+
+To use a sudo enabled user, run:
+
+$ mkdir -p $HOME/.kube
+$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+$ sudo chown $(id -u):$(id -g) $HOME/.kube/config
+Now check to see if the kubectl command is activated.
+
+# kubectl get nodes
+Check Status of Nodes
+Check Status of Nodes
+At this point, you will also notice that the status of the master-node is ‘NotReady’. This is because we are yet to deploy the pod network to the cluster.
+
+The pod Network is the overlay network for the cluster, that is deployed on top of the present node network. It is designed to allow connectivity across the pod.
+
+Step 5: Setup Your Pod Network
+https://docs.projectcalico.org/getting-started/kubernetes/self-managed-onprem/onpremises#install-calico-with-kubernetes-api-datastore-50-nodes-or-less
+We will use calico as our follwoing functionalities :
+Policy
+IPAM
+CNI
+Overlay
+IPIP
+Routing
+Edit the appropriate CIDR value in calico.yml
+kubectl apply -f calico.yaml
+
+
+# kubectl get nodes
+Check Status of Master Nodes
+Check Status of Master Nodes
+Next, we add the worker nodes to the cluster.
+
+Setting Up Worker Nodes to Join Kubernetes Cluster
+The following steps will run on the worker nodes. These steps should be run on every worker node when joining the Kubernetes cluster.
+
+Step 1: Prepare Hostname, Firewall and SELinux
+On your worker-node-1 and worker-node-2, set the hostname and in case you don’t have a DNS server, then also update your master and worker nodes on /etc/hosts file.
+
+# hostnamectl set-hostname master-node
+# cat <<EOF>> /etc/hosts
+10.2.1.121 k8s-master
+10.2.1.122 k8s-worker
+EOF
+You can ping k8s-worker to test if your updated hostfile is fine using ping command.
+# ping k8s-master
+# ping k8s-worker
+
+Next, disable SElinux and update your firewall rules and swappoff :
+
+# setenforce 0
+# sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+Set the following firewall rules on ports. Make sure that all firewall-cmd commands, return success.
+
+# firewall-cmd --permanent --add-port=6783/tcp
+# firewall-cmd --permanent --add-port=10250/tcp
+# firewall-cmd --permanent --add-port=10255/tcp
+# firewall-cmd --permanent --add-port=30000-32767/tcp
+# firewall-cmd  --reload
+# echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+# swapoff -a
+vi /etc/fstab
+comment out the line 
+
+Step 2: Setup the Kubernetes Repo
+You will need to add Kubernetes repositories manually as they do not come pre-installed on CentOS 7.
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+Step 3: Install Kubeadm and Docker
+With the package repo now ready, you can go ahead and install kubeadm and docker packages.
+
+# yum install kubeadm docker -y 
+Start and enable both the services.
+
+# systemctl enable docker
+# systemctl start docker
+# systemctl enable kubelet
+# systemctl start kubelet
+
+
+Step 4: Join the Worker Node to the Kubernetes Cluster
+We now require the token that kubeadm init generated, to join the cluster. You can copy and paste it to your node-1 and node-2 if you had copied it somewhere.
+
+# kubeadm join 10.2.1.121:6443 --token bb210q.0go6iknvo5b9oi2x \
+        --discovery-token-ca-cert-hash sha256:bccef6a7d57b03e1336bb4738b544fc064de3a7d2f1996a4ac4d4adf69c07254
+Join Nodes to Kubernets Cluster
+Join Nodes to Kubernets Cluster
+As suggested on the last line, go back to your master-node and check if worker node-1 and worker node-2 have joined the cluster using the following command.
+
+# Check All Nodes Status in Kubernetes Cluster
+kubectl get nodes
+
+At this point, we have successfully completed an installation of a Kubernetes cluster on Centos 7 and we have successfully on-boarded two worker-nodes. You can now begin to create your pods and deploy your services.
+
+# Workaround for downloading Docker Images :
+https://raw.githubusercontent.com/moby/moby/master/contrib/download-frozen-image-v2.sh 
+yum install epel-release -y
+yum install jq -y
+Download 
+curl -ks https://raw.githubusercontent.com/moby/moby/master/contrib/download-frozen-image-v2.sh > docker-image.sh
+chmod +x docker-image.sh
+Create new directory and add the Repo from which we need too download conatiner images:
+./docker-image.sh nginxapp1 stacksimplify/kube-nginxapp1:1.0.0
+tar -Cc nginxapp1 . | docker load
+
+https://devops.stackexchange.com/questions/2731/downloading-docker-images-from-docker-hub-without-using-docker 
+docker save nginxapp1 > nginxapp1.tar
+docker load < nginxapp1.tar 
+
+
+# Copying Images to Worker Node:
+scp -r nginxapp1/ root@10.30.122.11:/root/
+scp -r nginxapp1/ root@10.30.122.12:/root/
+tar -Cc nginxapp1 . | docker load
+
+# Creating sdb devices for pv's:
+fdisk -l
+p : primary
+w : save and create new partition
+format using mkfs.ext4 
+
+# Create Metallb Load Balancer :
+
+Metallb : https://metallb.universe.tf/  
+
+Prerequisites
+MetalLB requires the following to function:
+A Kubernetes cluster, running Kubernetes 1.13.0 or later, that does not already have network load-balancing functionality.
+A cluster network configuration that can coexist with MetalLB.
+Some IPv4 addresses for MetalLB to hand out.
+When using the BGP operating mode, you will need one or more routers capable of speaking BGP.
+Traffic on port 7946 (TCP & UDP) must be allowed between nodes, as required by memberlist
+
+
+Check if StrictARP is set to False:
+
+kubectl -n kube-system describe cm kube-proxy | grep strictARP
+Only if mode is set to IPVS then set strictARP to True else ignore
+
+Install Metallb:
+
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.6/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.6/manifests/metallb.yaml
+# On first install only
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)" 
+
+Configure Metallb with Layer 2 configuration:
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 10.30.122.240-10.30.122.250
+
+
+# To download the Images for Metallb:
+
+Image: metallb/controller:v0.9.6
+Image: metallb/speaker:v0.9.6
+
+# Deploy Helm: https://helm.sh/docs/intro/install/ 
+
+$ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+$ chmod 700 get_helm.sh
+$ ./get_helm.sh
+
+helm version --short
+v3.6.0+g7f2df64
+
+
+# Deploy Ingress Controller and Ingress objects behind Metallb:
+
+https://kubernetes.github.io/ingress-nginx/deploy/ 
+
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
+helm version --short
+
+https://kubernetes.github.io/ingress-nginx/deploy/#using-helm 
+
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm show values ingress-nginx/ingress-nginx > nginx.yml
+helm install monitoring-ingress ingress-nginx/ingress-nginx -n ingress --values nginx.yml
+helm list -n ingress
+
+
+# create new Ingress object for exposing deployment:
+ If you get an error while trying to create Ingress object :
+
+Error from server (InternalError): error when creating "ingress-sampleapp.yml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://container-based-mon-ingress-ingress-nginx-controller-admission.ingress.svc:443/networking/v1beta1/ingresses?timeout=10s": Forbidden 
+
+Solution: https://stackoverflow.com/questions/61616203/nginx-ingress-controller-failed-calling-webhook /
+https://stackoverflow.com/questions/61365202/nginx-ingress-service-ingress-nginx-controller-admission-not-found/62044090#62044090 
+
+kubectl get -A ValidatingWebhookConfiguration
+
+kubectl delete -A ValidatingWebhookConfiguration monitoring-ingress-ingress-nginx-admission
+kubectl delete -A ValidatingWebhookConfiguration container-monitoring-kube-admission
+ubectl delete -A ValidatingWebhookConfiguration node-probelm-detector-admission
+# Add ClusterIP and hook it up with nginx Ingress:
+
+kubectl expose deploy sampleapp-nginx-app-deployment --port 80 -n sampleapp
+
+Add the new ClusterIP service inside the ingress object  
+vi ingress-sampleapp.yml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginxapp-ingress-service
+spec:
+  rules:
+  - host: nginx.hpe.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sampleapp-nginx-app-deployment
+            port:
+              number: 80
+kubectl apply -f ingress-sampleapp.yml -n sampleapp
+kubectl get ing -n sampleapp
+kubectl describe ing nginxapp-ingress-service -n sampleapp
+
+
+
+
